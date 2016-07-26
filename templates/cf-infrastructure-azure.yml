@@ -1,0 +1,138 @@
+meta:
+  stemcell: (( merge || .meta.default_stemcell ))
+  storage_account_name: (( merge ))
+
+  default_stemcell:
+    name: bosh-azure-hyperv-ubuntu-trusty-go_agent
+    version: latest
+
+properties:
+  <<: (( merge ))
+
+  logger_endpoint:
+    port: 4443
+
+  loggregator:
+    blacklisted_syslog_ranges:
+    - start: 10.10.0.0
+      end: 10.10.255.255
+
+  dea_next:
+    deny_networks: (( merge || [] ))
+    allow_networks: (( merge || [] )) # Amazon DNS
+
+compilation:
+  cloud_properties:
+    instance_type: Standard_DS3
+    storage_account_name: (( meta.storage_account_name ))
+  network: cf1
+  reuse_compilation_vms: true
+  workers: 12
+
+networks: (( merge ))
+
+resource_pools:
+  - name: small_z1
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: small_z2
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: medium_z1
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: medium_z2
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: large_z1
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: large_z2
+    cloud_properties:
+      instance_type: Standard_DS4
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: runner_z1
+    cloud_properties:
+      instance_type: Standard_DS4
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: runner_z2
+    cloud_properties:
+      instance_type: Standard_DS4
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: router_z1
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+      availability_set: (( merge || "router_z1" ))
+
+  - name: router_z2
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: small_errand
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+  - name: xlarge_errand
+    cloud_properties:
+      instance_type: Standard_DS1
+      storage_account_name: (( meta.storage_account_name ))
+
+# set up static IPs
+jobs:
+  - name: nats_z1
+    instances: 1
+    networks:
+      - name: cf1
+        static_ips: (( static_ips(1) ))
+
+  - name: router_z1
+    instances: 1
+    networks:
+      - name: cf1
+        static_ips: ~
+
+  - name: loggregator_z1
+    instances: 0
+    networks:
+      - name: cf1
+
+  - name: doppler_z1
+    instances: 1
+    networks:
+      - name: cf1
+
+  - name: loggregator_trafficcontroller_z1
+    instances: 1
+    networks:
+      - name: cf1
+
+  - name: consul_z1
+    instances: 2
+    networks:
+      - name: cf1
+        static_ips: (( static_ips(27, 28, 29) ))
+
+  - name: etcd_z1
+    instances: 2
+    networks:
+      - name: cf1
+        static_ips: (( static_ips(10, 25) ))
+
+  - name: smoke_tests
+    instances: 1
